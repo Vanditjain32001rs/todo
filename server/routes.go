@@ -18,6 +18,7 @@ func SetUpRoutes() *Server {
 		api.Post("/sign-in", handler.SignIn)
 		api.Group(func(r chi.Router) {
 			r.Use(helper.Middleware)
+
 			r.Get("/fetch-task", handler.FetchTask)
 			r.Post("/add-task", handler.AddTask)
 			r.Put("/update-task", handler.UpdateTask)

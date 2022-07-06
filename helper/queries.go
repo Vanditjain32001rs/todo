@@ -139,29 +139,17 @@ func MarkCompleteQuery(taskID string) error {
 	return err
 }
 
-func SessionExist(sessID string) error {
+func SessionExist(sessID string) (bool, error) {
 
-	query := `SELECT expires_at 
+	var isExpired bool
+	query := `SELECT count(*) > 0
 			  FROM sessions 
-			  WHERE session_id=$1 AND archived_at is null`
-	var expiryTime time.Time
-	checkSessErr := database.Data.Select(&expiryTime, query, sessID)
+			WHERE session_id=$1 AND archived_at is null and expires_at is null`
+	checkSessErr := database.Data.Select(&isExpired, query, sessID)
 	if checkSessErr != nil {
-		return checkSessErr
+		return isExpired, checkSessErr
 	}
-	return nil
-}
-
-func IsExpired(sessID string) error {
-	query := `SELECT expires_at 
-			  FROM sessions 
-			  WHERE session_id=$1`
-	var expiryTime time.Time
-	err := database.Data.Select(&expiryTime, query, sessID)
-	if expiryTime.After(time.Now()) {
-		return err
-	}
-	return nil
+	return isExpired, nil
 }
 
 func RefreshSessToken(sessID string) error {

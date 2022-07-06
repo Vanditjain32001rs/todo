@@ -17,7 +17,7 @@ func Middleware(next http.Handler) http.Handler {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		sessTokenErr := SessionExist(sessToken)
+		isExpired, sessTokenErr := SessionExist(sessToken)
 		if sessTokenErr != nil {
 			if sessTokenErr == sql.ErrNoRows {
 				log.Printf("middleware : no row exist")
@@ -25,11 +25,9 @@ func Middleware(next http.Handler) http.Handler {
 				return
 			}
 		}
-		sessTokenExpErr := IsExpired(sessToken)
-		if sessTokenExpErr != nil {
-			log.Printf("Middleware : Error in checking if session expired")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
+
+		if isExpired {
+			w.WriteHeader(http.StatusUnauthorized)
 		}
 
 		sessTokenRef := RefreshSessToken(sessToken)
@@ -52,7 +50,7 @@ func Middleware(next http.Handler) http.Handler {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		
+
 		ctx := context.WithValue(r.Context(), "user", user)
 		ctx = context.WithValue(r.Context(), "SessionID", sessToken)
 		ctx = context.WithValue(r.Context(), "UserID", userID)
