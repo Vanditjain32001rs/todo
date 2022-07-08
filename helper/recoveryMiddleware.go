@@ -23,7 +23,10 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 					return
 				}
 				w.WriteHeader(http.StatusInternalServerError)
-				w.Write(jsonData)
+				_, err := w.Write(jsonData)
+				if err != nil {
+					return
+				}
 			}
 		}()
 

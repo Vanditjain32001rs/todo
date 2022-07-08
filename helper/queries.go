@@ -1,6 +1,8 @@
 package helper
 
 import (
+	"github.com/elgris/sqrl"
+	"log"
 	"time"
 	"todo/database"
 	"todo/models"
@@ -62,16 +64,31 @@ func CreateSession(userSession *models.Session) (string, error) {
 	return sessID, getSessionIdErr
 }
 
-func AddTaskQuery(userID, taskDesc string) (string, error) {
+func AddTaskQuery(userID string, taskMap map[int]string) ([]string, error) {
+	tasks := make([]string, 0)
+	psql := sqrl.StatementBuilder.PlaceholderFormat(sqrl.Dollar)
+	query := psql.Insert("tasks").Columns("id", "task_description")
+	for n, task := range taskMap {
+		query.Values(userID, task[n])
+	}
+	sql, args, err := query.ToSql()
+	sql = sql + " RETURNING task_id"
+	if err != nil {
+		log.Printf("AddTAskQuery : Error in making query")
+		return nil, err
+	}
 
-	query := `INSERT INTO tasks(id,task_description) 
-		      VALUES($1,$2) 
-			  RETURNING task_id`
-
-	var taskID string
-	addTaskErr := database.Data.Get(&taskID, query, userID, taskDesc)
-
-	return taskID, addTaskErr
+	AddErr := database.Data.Select(&tasks, sql, args...)
+	if AddErr != nil {
+		log.Println(sql)
+		log.Printf("AddTaskQuery : Error Select() + %v", AddErr)
+		return nil, AddErr
+	}
+	//var taskID string
+	//addTaskErr := database.Data.Get(&taskID, query, userID, taskDesc)
+	//
+	//return taskID, addTaskErr
+	return tasks, nil
 }
 
 func UpdateTaskQuery(taskID, taskDesc string) error {
@@ -82,14 +99,20 @@ func UpdateTaskQuery(taskID, taskDesc string) error {
 	return updateErr
 }
 
-func FetchAllTaskQuery(userID string) (*[]models.UserTaskDesc, error) {
+func FetchAllTaskQuery(userID string, pageNo, taskSize int) (*[]models.UserTaskDesc, error) {
 
-	query := `SELECT task_description
-			  FROM tasks
-			  WHERE id=$1 AND archived_at is null`
+	query := `WITH UserTask AS
+                       (SELECT task_description
+          				FROM tasks
+          				WHERE id = $1
+            				AND archived_at is null
+          				ORDER BY created_at)
+			  SELECT task_description
+			  FROM UserTask
+              LIMIT $2 OFFSET $3`
 
 	var userTask []models.UserTaskDesc
-	fetchTaskErr := database.Data.Select(&userTask, query, userID)
+	fetchTaskErr := database.Data.Select(&userTask, query, userID, taskSize, pageNo*taskSize)
 	if fetchTaskErr != nil {
 		return &userTask, fetchTaskErr
 	}
@@ -121,6 +144,7 @@ func DeleteTask(taskID string) error {
 }
 
 func DeleteSession(sessID string) error {
+	log.Printf(sessID)
 	currTime := time.Now()
 	query := `UPDATE sessions
 			  SET archived_at=$1

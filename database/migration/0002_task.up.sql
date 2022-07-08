@@ -5,6 +5,7 @@ CREATE TABLE tasks
     id               UUID,
     task_description TEXT NOT NULL,
     is_complete      BOOLEAN NOT NULL         DEFAULT false,
+    created_at    TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     archived_at     TIMESTAMP with time zone,
     FOREIGN KEY (id)
         references todo (id)

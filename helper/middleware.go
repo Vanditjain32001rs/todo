@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"todo/models"
 )
 
 func Middleware(next http.Handler) http.Handler {
@@ -36,7 +37,7 @@ func Middleware(next http.Handler) http.Handler {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-
+		//todo multiple queries not needed
 		userID, getIdErr := GetID(sessToken)
 		if getIdErr != nil {
 			log.Printf("MiddleWare : Error in retrieving the user id from session table")
@@ -44,16 +45,20 @@ func Middleware(next http.Handler) http.Handler {
 			return
 		}
 
-		user, err := GetUserDetails(userID)
-		if err != nil {
-			log.Printf("Middleware : Error in getting user detail")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		//user, err := GetUserDetails(userID)
+		//if err != nil {
+		//	log.Printf("Middleware : Error in getting user detail")
+		//	w.WriteHeader(http.StatusInternalServerError)
+		//	return
+		//}
 
-		ctx := context.WithValue(r.Context(), "user", user)
-		ctx = context.WithValue(r.Context(), "SessionID", sessToken)
-		ctx = context.WithValue(r.Context(), "UserID", userID)
+		ctxMap := models.ContextMap{CtxMap: map[string]string{
+			"UserID": userID,
+			"SessID": sessToken,
+		}}
+		c := context.Background()
+		ctx := context.WithValue(c, "ID", ctxMap)
+		//ctx = context.WithValue(r.Context(), "UserID", userID)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 

@@ -7,3 +7,4 @@ CREATE TABLE IF NOT EXISTS sessions
     Foreign key (id)
         references todo (id)
 );
+-- todo id should be proerply defined for which regfrenced is being taken

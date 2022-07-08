@@ -31,7 +31,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
+	//todo empty interface do read about it
 	jsonData, jsonErr := json.Marshal(ID)
 	if jsonErr != nil {
 		log.Printf("CreateUser : Error in creating json file.")
